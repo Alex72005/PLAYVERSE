@@ -33,6 +33,17 @@ export default function Sidebar({ isOpen }) {
                 >
                     Juegos
                 </NavLink>
+                <NavLink
+                    to="/favorites"
+                    className={({ isActive }) =>
+                        `px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 font-medium whitespace-nowrap ${isActive
+                            ? "bg-gaming-blue text-white shadow-lg shadow-gaming-blue/20"
+                            : "text-foreground-muted hover:bg-gaming-hover hover:text-white"
+                        }`
+                    }
+                >
+                    Favoritos
+                </NavLink>
             </nav>
         </aside>
     );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getGameDetails, getGameSuggested, getGames } from '../services/gameService';
 import GameCard from '../components/GameCard';
+import { isFavorite, toggleFavorite } from '../services/favoritesService';
 
 export default function GameDetails() {
     const { id } = useParams();
@@ -9,6 +10,7 @@ export default function GameDetails() {
     const [suggestedGames, setSuggestedGames] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isFav, setIsFav] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -17,6 +19,7 @@ export default function GameDetails() {
                 // Fetch details first
                 const details = await getGameDetails(id);
                 setGame(details);
+                setIsFav(isFavorite(details.id));
 
                 // Try to fetch suggested games
                 let related = [];
@@ -53,6 +56,24 @@ export default function GameDetails() {
         fetchDetails();
     }, [id]);
 
+    useEffect(() => {
+        if (!game) return;
+
+        const handleStorageChange = () => {
+            setIsFav(isFavorite(game.id));
+        };
+
+        window.addEventListener('favorites-updated', handleStorageChange);
+        return () => window.removeEventListener('favorites-updated', handleStorageChange);
+    }, [game]);
+
+    const handleToggleFavorite = () => {
+        if (game) {
+            toggleFavorite(game);
+            setIsFav(!isFav);
+        }
+    };
+
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
             <div className="w-12 h-12 border-4 border-gaming-blue border-t-transparent rounded-full animate-spin"></div>
@@ -73,10 +94,23 @@ export default function GameDetails() {
             <div className="relative h-[500px] rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <img src={game.background_image} alt={game.name} className="w-full h-full object-cover object-top" />
                 <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-gaming-bg to-transparent p-8">
-                    <h1 className="text-5xl font-bold text-white mb-4">{game.name}</h1>
-                    <div className="flex gap-4">
-                        <span className="bg-gaming-blue text-white px-3 py-1 rounded-full text-sm">Rating: {game.rating}</span>
-                        <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm">{game.released}</span>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-5xl font-bold text-white mb-4">{game.name}</h1>
+                            <div className="flex gap-4">
+                                <span className="bg-gaming-blue text-white px-3 py-1 rounded-full text-sm">Rating: {game.rating}</span>
+                                <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm">{game.released}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleToggleFavorite}
+                            className={`p-3 rounded-full border border-white/10 transition-colors cursor-pointer ${isFav ? 'bg-white text-gaming-accent' : 'bg-black/40 text-white hover:bg-white/20'}`}
+                            title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke={isFav ? "none" : "currentColor"} className="w-6 h-6 transition-transform duration-300 hover:scale-110" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
