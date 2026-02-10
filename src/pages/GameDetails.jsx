@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { getGameDetails, getGameSuggested, getGames } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import { isFavorite, toggleFavorite } from '../services/favoritesService';
