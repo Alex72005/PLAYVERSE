@@ -1,8 +1,8 @@
 import { Link } from 'react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { isFavorite, toggleFavorite } from '../services/favoritesService';
 
-export default function GameCard({ game }) {
+const GameCard = memo(({ game }) => {
     const [isFav, setIsFav] = useState(false);
 
     useEffect(() => {
@@ -25,7 +25,7 @@ export default function GameCard({ game }) {
     };
 
     return (
-        <Link to={`/game/${game.id}`} className="bg-gaming-card rounded-xl overflow-hidden shadow-lg border border-white/5 hover:shadow-gaming-blue/20 hover:-translate-y-1 transition-all duration-300 group block h-full">
+        <Link to={`/game/${game.id}`} className="bg-gaming-card rounded-xl overflow-hidden shadow-lg border border-white/5 hover:shadow-gaming-blue/20 hover:-translate-y-1 transition-[transform,box-shadow,border-color] duration-300 group block h-full">
             <div className="h-full flex flex-col">
                 <div className="relative h-48 overflow-hidden">
                     {game.background_image ? (
@@ -68,4 +68,6 @@ export default function GameCard({ game }) {
             </div>
         </Link>
     );
-}
+});
+
+export default GameCard;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router';
-import { getGameDetails, getGameSuggested, getGames } from '../services/gameService';
+import { getGameDetails, getGameSuggested, getGames, getGameScreenshots } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import { isFavorite, toggleFavorite } from '../services/favoritesService';
 
@@ -8,6 +8,7 @@ export default function GameDetails() {
     const { id } = useParams();
     const [game, setGame] = useState(null);
     const [suggestedGames, setSuggestedGames] = useState([]);
+    const [screenshots, setScreenshots] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFav, setIsFav] = useState(false);
@@ -46,6 +47,14 @@ export default function GameDetails() {
 
                 setSuggestedGames(related || []);
 
+                // Fetch screenshots
+                try {
+                    const ss = await getGameScreenshots(id);
+                    setScreenshots(ss || []);
+                } catch (ssError) {
+                    console.warn("Screenshots fetch failed", ssError);
+                }
+
             } catch (err) {
                 console.error("Error loading game details:", err);
                 setError('Error al cargar los detalles del juego.');
@@ -71,6 +80,16 @@ export default function GameDetails() {
         if (game) {
             toggleFavorite(game);
             setIsFav(!isFav);
+        }
+    };
+
+    const scrollRef = useRef(null);
+
+    const scroll = (direction) => {
+        if (scrollRef.current) {
+            const { scrollLeft, clientWidth } = scrollRef.current;
+            const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth;
+            scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
         }
     };
 
@@ -115,20 +134,26 @@ export default function GameDetails() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                <div className="md:col-span-2 text-foreground-muted leading-relaxed">
-                    <div
-                        dangerouslySetInnerHTML={{
-                            __html: (game.description.includes('Español')
-                                ? game.description.split('Español').shift()
-                                : game.description)
-                                .replace(/^(<br\s*\/?>|\s)+/i, '')
-                        }}
-                        className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0"
-                    />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <div className="lg:col-span-2 flex">
+                    {/* Description Card */}
+                    <div className="bg-gaming-card p-8 rounded-xl border border-white/5 text-foreground-muted leading-relaxed w-full h-[440px] flex flex-col">
+                        <h2 className="text-xl font-bold text-white mb-4 shrink-0">Sobre este juego</h2>
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: (game.description.includes('Español')
+                                    ? game.description.split('Español').shift()
+                                    : game.description)
+                                    .replace(/^(<br\s*\/?>|\s)+/i, '')
+                            }}
+                            className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0 overflow-y-auto grow pr-4 custom-scrollbar"
+                        />
+                    </div>
                 </div>
-                <div className="bg-gaming-card p-6 rounded-xl border border-white/5 h-fit">
-                    <div className="space-y-4">
+
+                {/* Sidebar Card */}
+                <div className="bg-gaming-card p-6 rounded-xl border border-white/5 h-[440px] overflow-y-auto custom-scrollbar">
+                    <div className="space-y-4 mt-3">
                         <div>
                             <span className="block text-sm text-foreground-muted">Plataformas</span>
                             <div className="flex flex-wrap gap-2 mt-1">
@@ -139,24 +164,105 @@ export default function GameDetails() {
                                 ))}
                             </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <span className="block text-sm text-foreground-muted">Géneros</span>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {game.genres?.map(g => (
+                                        <Link
+                                            key={g.id}
+                                            to={`/games?genre=${g.slug}`}
+                                            className="text-xs bg-white/5 px-2 py-1 rounded border border-white/10 hover:bg-gaming-blue hover:border-gaming-blue transition-colors cursor-pointer"
+                                        >
+                                            {g.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="block text-sm text-foreground-muted">Publisher</span>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {game.publishers?.map(p => (
+                                        <Link
+                                            key={p.id}
+                                            to={`/publisher/${p.slug || p.id}`}
+                                            className="text-xs bg-white/5 px-2 py-1 rounded border border-white/10 hover:bg-gaming-blue hover:border-gaming-blue transition-colors cursor-pointer"
+                                        >
+                                            {p.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                         <div>
-                            <span className="block text-sm text-foreground-muted">Géneros</span>
+                            <span className="block text-sm text-foreground-muted">Tags</span>
                             <div className="flex flex-wrap gap-2 mt-1">
-                                {game.genres?.map(g => (
-                                    <span key={g.id} className="text-xs bg-white/5 px-2 py-1 rounded border border-white/10">
-                                        {g.name}
-                                    </span>
+                                {game.tags?.slice(0, 12).map(t => (
+                                    <Link
+                                        key={t.id}
+                                        to={`/games?tag=${t.slug}`}
+                                        className="text-xs bg-white/5 px-2 py-1 rounded border border-white/10 hover:bg-gaming-blue hover:border-gaming-blue transition-colors cursor-pointer"
+                                    >
+                                        {t.name}
+                                    </Link>
                                 ))}
                             </div>
                         </div>
                         {game.website && (
-                            <a href={game.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-gaming-hover text-white py-2 rounded-lg hover:bg-gaming-blue transition-colors mt-4">
+                            <a href={game.website} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-gaming-hover text-white py-2 rounded-lg hover:bg-gaming-blue transition-colors mt-4 cursor-pointer">
                                 Sitio Web Oficial
                             </a>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Screenshots Gallery Section (Full Width Carousel) */}
+            {screenshots.length > 0 && (
+                <div className="mb-12 relative group">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-white">Imágenes</h2>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => scroll('left')}
+                                className="p-2 rounded-full bg-gaming-card border border-white/10 hover:border-gaming-blue transition-colors text-white/70 hover:text-white cursor-pointer"
+                                aria-label="Previous screenshot"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={() => scroll('right')}
+                                className="p-2 rounded-full bg-gaming-card border border-white/10 hover:border-gaming-blue transition-colors text-white/70 hover:text-white cursor-pointer"
+                                aria-label="Next screenshot"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        ref={scrollRef}
+                        className="flex gap-4 overflow-x-auto no-scrollbar pb-2 snap-x"
+                    >
+                        {screenshots.map(s => (
+                            <div
+                                key={s.id}
+                                className="min-w-[280px] md:min-w-[350px] lg:min-w-[calc(33.333%-11px)] aspect-video rounded-lg overflow-hidden border border-white/10 hover:border-gaming-blue transition-colors group/img cursor-zoom-in snap-start"
+                            >
+                                <img
+                                    src={s.image}
+                                    alt="Game screenshot"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Suggested Games Section */}
             {suggestedGames.length > 0 && (

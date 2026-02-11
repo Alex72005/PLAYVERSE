@@ -1,34 +1,95 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-import { getGames } from '../services/gameService';
-
+import { Link, useSearchParams } from 'react-router';
+import { getGames, getGenres, getTags } from '../services/gameService';
 import GameCard from '../components/GameCard';
+import Pagination from '../components/Pagination';
 
 export default function Games() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const genreSlug = searchParams.get('genre');
+    const tagSlug = searchParams.get('tag');
+
     const [games, setGames] = useState([]);
+    const [genresList, setGenresList] = useState([]);
+    const [tagsList, setTagsList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState(searchParams.get('search') || '');
+
+    // Derived state from URL
+    const page = parseInt(searchParams.get('page')) || 1;
+    const debouncedSearch = searchParams.get('search') || '';
     const [totalPages, setTotalPages] = useState(0);
 
-    // Efecto debounce para input de búsqueda
+    const setPage = (newPage) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (newPage > 1) {
+                next.set('page', newPage);
+            } else {
+                next.delete('page');
+            }
+            return next;
+        });
+    };
+
+    // Fetch filters list on mount
+    useEffect(() => {
+        const fetchFilters = async () => {
+            try {
+                const [genres, tags] = await Promise.all([getGenres(), getTags()]);
+                setGenresList(genres);
+                setTagsList(tags);
+            } catch (err) {
+                console.error('Error fetching filter lists:', err);
+            }
+        };
+        fetchFilters();
+    }, []);
+
+    // Helper to format slug for the title
+    const formatSlug = (slug) => {
+        if (!slug) return '';
+        return slug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
+    // Sync local search input with URL if URL changes (e.g. via back button)
+    const urlSearchParam = searchParams.get('search') || '';
+    useEffect(() => {
+        if (urlSearchParam !== search) {
+            setSearch(urlSearchParam);
+        }
+    }, [urlSearchParam]);
+
+    // Update URL when search term changes (debounced)
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            setDebouncedSearch(search);
-            setPage(1); // Reset page on new search term
-        }, 300);
+            if (search !== (searchParams.get('search') || '')) {
+                setSearchParams(prev => {
+                    const next = new URLSearchParams(prev);
+                    if (search) {
+                        next.set('search', search);
+                    } else {
+                        next.delete('search');
+                    }
+                    next.delete('page'); // Reset to page 1 on search change
+                    return next;
+                });
+            }
+        }, 500);
         return () => clearTimeout(timeoutId);
     }, [search]);
 
-    // Efecto para buscar/cargar juegos (depende de debouncedSearch y page)
+    // Efecto para buscar/cargar juegos (depende de debouncedSearch, page, genreSlug y tagSlug)
     useEffect(() => {
         const loadGames = async () => {
             setLoading(true);
             try {
-                // Usamos debouncedSearch en lugar de search directo
-                const data = await getGames(page, debouncedSearch);
+                // Usamos debouncedSearch en lugar de search directo, y añadimos genreSlug y tagSlug
+                const data = await getGames(page, debouncedSearch, genreSlug, tagSlug);
                 setGames(data.results);
                 // RAWG devuelve 'count', calculamos total de páginas (40 por página)
                 setTotalPages(Math.ceil(data.count / 40));
@@ -41,13 +102,33 @@ export default function Games() {
         };
 
         loadGames();
-    }, [page, debouncedSearch]);
+    }, [page, debouncedSearch, genreSlug, tagSlug]);
+
+    const handleFilterChange = (key, value) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value) {
+                next.set(key, value);
+            } else {
+                next.delete(key);
+            }
+            next.delete('page'); // Reset to page 1 on filter change
+            return next;
+        });
+    };
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // Force immediate search if user hits Enter
-        setDebouncedSearch(search);
-        setPage(1);
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (search) {
+                next.set('search', search);
+            } else {
+                next.delete('search');
+            }
+            next.delete('page');
+            return next;
+        });
     };
 
     const handleSearchInput = (e) => {
@@ -71,6 +152,47 @@ export default function Games() {
 
     return (
         <div>
+            {/* Título y Filtros */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold text-white">
+                        {(!genreSlug && !tagSlug)
+                            ? 'Explorar Juegos'
+                            : `${genreSlug ? formatSlug(genreSlug) : ''}${genreSlug && tagSlug ? ' + ' : ''}${tagSlug ? formatSlug(tagSlug) : ''}`}
+                    </h1>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                    {/* Filtro por Género */}
+                    <div className="flex flex-col gap-1">
+                        <select
+                            value={genreSlug || ''}
+                            onChange={(e) => handleFilterChange('genre', e.target.value)}
+                            className="bg-gaming-card border border-white/10 text-white rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-gaming-blue transition-all cursor-pointer min-w-[140px]"
+                        >
+                            <option value="">Todos los géneros</option>
+                            {genresList.map(g => (
+                                <option key={g.id} value={g.slug}>{g.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Filtro por Tag */}
+                    <div className="flex flex-col gap-1">
+                        <select
+                            value={tagSlug || ''}
+                            onChange={(e) => handleFilterChange('tag', e.target.value)}
+                            className="bg-gaming-card border border-white/10 text-white rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-gaming-blue transition-all cursor-pointer min-w-[140px]"
+                        >
+                            <option value="">Todas las tags</option>
+                            {tagsList.map(t => (
+                                <option key={t.id} value={t.slug}>{t.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             {/* Buscador */}
             <div className="mb-8">
                 <form onSubmit={handleSearch} className="flex gap-4">
@@ -107,90 +229,11 @@ export default function Games() {
                     </div>
 
                     {/* Paginación Avanzada */}
-                    {games.length > 0 && (
-                        <div className="flex flex-col items-center gap-4 py-8 border-t border-white/5 mt-8">
-                            <div className="flex flex-wrap justify-center items-center gap-2">
-                                {/* Botón Primera Página */}
-                                <button
-                                    onClick={() => { setPage(1); window.scrollTo(0, 0); }}
-                                    disabled={page === 1}
-                                    className="px-3 py-2 rounded-lg bg-gaming-card border border-white/10 hover:bg-gaming-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
-                                    title="Primera Página"
-                                >
-                                    « 1
-                                </button>
-
-                                {/* Botón Anterior */}
-                                <button
-                                    onClick={handlePrevious}
-                                    disabled={page === 1}
-                                    className="p-2 rounded-lg bg-gaming-blue text-white hover:bg-gaming-blue-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-gaming-blue/20 cursor-pointer"
-                                    title="Anterior"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-
-                                {/* Números de Página (Ventana alrededor de la actual) */}
-                                {Array.from({ length: 5 }, (_, i) => page - 2 + i).map(pageNum => {
-                                    if (pageNum < 1 || pageNum > totalPages) return null;
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => { setPage(pageNum); window.scrollTo(0, 0); }}
-                                            className={`min-w-10 h-10 px-2 rounded-lg font-bold transition-all cursor-pointer ${page === pageNum
-                                                ? 'bg-gaming-blue text-white shadow-lg shadow-gaming-blue/20 scale-110'
-                                                : 'bg-gaming-card border border-white/10 hover:bg-gaming-hover hover:text-gaming-accent'
-                                                }`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
-
-                                {/* Botón Siguiente */}
-                                <button
-                                    onClick={handleNext}
-                                    disabled={page === totalPages}
-                                    className="p-2 rounded-lg bg-gaming-blue text-white hover:bg-gaming-blue-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-gaming-blue/20 cursor-pointer"
-                                    title="Siguiente"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-
-                                {/* Botón +2 (Saltar 2 páginas) - Solicitud específica */}
-                                <button
-                                    onClick={() => {
-                                        const newPage = Math.min(page + 2, totalPages);
-                                        setPage(newPage);
-                                        window.scrollTo(0, 0);
-                                    }}
-                                    disabled={page >= totalPages - 1}
-                                    className="px-3 py-2 rounded-lg bg-gaming-card border border-white/10 hover:bg-gaming-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium cursor-pointer"
-                                    title="Avanzar 2 páginas"
-                                >
-                                    +2
-                                </button>
-
-                                {/* Botón Última Página */}
-                                <button
-                                    onClick={() => { setPage(totalPages); window.scrollTo(0, 0); }}
-                                    disabled={page === totalPages}
-                                    className="px-3 py-2 rounded-lg bg-gaming-card border border-white/10 hover:bg-gaming-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
-                                    title="Última Página"
-                                >
-                                    {totalPages} »
-                                </button>
-                            </div>
-
-                            <div className="text-xs text-foreground-muted">
-                                Página {page} de {totalPages}
-                            </div>
-                        </div>
-                    )}
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
                 </>
             )}
         </div>
