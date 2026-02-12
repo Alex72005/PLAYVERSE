@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { getPopularGames, getGames } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import Carousel from '../components/Carousel';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Home() {
     const [popularGames, setPopularGames] = useState([]);
@@ -27,11 +28,7 @@ export default function Home() {
         fetchData();
     }, []);
 
-    if (loading) return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="w-12 h-12 border-4 border-gaming-blue border-t-transparent rounded-full animate-spin"></div>
-        </div>
-    );
+    if (loading) return <LoadingSpinner fullScreen />;
 
     return (
         <div className="space-y-12 pb-8">

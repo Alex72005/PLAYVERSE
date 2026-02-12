@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { getPublishers } from '../services/gameService';
 import Pagination from '../components/Pagination';
 import PublisherCard from '../components/PublisherCard';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Publishers() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -12,7 +13,8 @@ export default function Publishers() {
     const [search, setSearch] = useState(searchParams.get('search') || '');
 
     // Derived state from URL
-    const page = parseInt(searchParams.get('page')) || 1;
+    const pageParam = parseInt(searchParams.get('page')) || 1;
+    const page = Math.max(1, pageParam);
     const debouncedSearch = searchParams.get('search') || '';
     const [totalPages, setTotalPages] = useState(0);
 
@@ -115,9 +117,7 @@ export default function Publishers() {
             </form>
 
             {loading ? (
-                <div className="flex justify-center py-20">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gaming-blue"></div>
-                </div>
+                <LoadingSpinner />
             ) : error ? (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-center">
                     {error}

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { getGameDetails, getGameSuggested, getGames, getGameScreenshots } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import { isFavorite, toggleFavorite } from '../services/favoritesService';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function GameDetails() {
     const { id } = useParams();
@@ -93,11 +94,7 @@ export default function GameDetails() {
         }
     };
 
-    if (loading) return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="w-12 h-12 border-4 border-gaming-blue border-t-transparent rounded-full animate-spin"></div>
-        </div>
-    );
+    if (loading) return <LoadingSpinner fullScreen />;
 
     if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
     if (!game) return <div className="text-center text-white mt-10">Juego no encontrado</div>;

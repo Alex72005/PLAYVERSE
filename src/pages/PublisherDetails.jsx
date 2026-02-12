@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { getPublisherDetails, getGames } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function PublisherDetails() {
     const { slug } = useParams();
@@ -12,7 +13,8 @@ export default function PublisherDetails() {
     const [loading, setLoading] = useState(true);
 
     // Derived state from URL
-    const page = parseInt(searchParams.get('page')) || 1;
+    const pageParam = parseInt(searchParams.get('page')) || 1;
+    const page = Math.max(1, pageParam);
     const [totalPages, setTotalPages] = useState(0);
     const [error, setError] = useState(null);
 
@@ -64,7 +66,7 @@ export default function PublisherDetails() {
     }, [publisher, page, slug]);
 
     if (error) return <div className="text-center py-20 text-red-500">{error}</div>;
-    if (!publisher) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gaming-blue"></div></div>;
+    if (!publisher) return <LoadingSpinner />;
 
     return (
         <div className="pb-10">
@@ -103,9 +105,7 @@ export default function PublisherDetails() {
                 <h2 className="text-2xl font-bold text-white mb-6">Juegos de {publisher.name}</h2>
 
                 {loading && page === 1 ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gaming-blue"></div>
-                    </div>
+                    <LoadingSpinner />
                 ) : (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

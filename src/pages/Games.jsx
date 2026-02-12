@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { getGames, getGenres, getTags } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Games() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -17,7 +18,8 @@ export default function Games() {
     const [search, setSearch] = useState(searchParams.get('search') || '');
 
     // Derived state from URL
-    const page = parseInt(searchParams.get('page')) || 1;
+    const pageParam = parseInt(searchParams.get('page')) || 1;
+    const page = Math.max(1, pageParam);
     const debouncedSearch = searchParams.get('search') || '';
     const [totalPages, setTotalPages] = useState(0);
 
@@ -91,8 +93,23 @@ export default function Games() {
                 // Usamos debouncedSearch en lugar de search directo, y añadimos genreSlug y tagSlug
                 const data = await getGames(page, debouncedSearch, genreSlug, tagSlug);
                 setGames(data.results);
-                // RAWG devuelve 'count', calculamos total de páginas (40 por página)
-                setTotalPages(Math.ceil(data.count / 40));
+
+                // Calculamos total de páginas
+                let calculatedPages = Math.ceil(data.count / 40);
+
+                // SOLO si hay filtros de género o tag activos, aplicamos el límite de 250 páginas de RAWG
+                // Esto es lo que pidió el usuario: corregir cuando se "mezcla" con filtros
+                if (genreSlug || tagSlug) {
+                    calculatedPages = Math.min(calculatedPages, 250);
+                }
+
+                setTotalPages(calculatedPages);
+
+                // Auto-corrección: si la página actual excede el total filtrado, volvemos a la 1
+                if (page > calculatedPages && calculatedPages > 0) {
+                    setPage(1);
+                }
+
                 setError(null);
             } catch (err) {
                 setError('Error al cargar juegos.');
@@ -213,9 +230,7 @@ export default function Games() {
 
             {/* Grid de Juegos */}
             {loading ? (
-                <div className="flex justify-center items-center h-64">
-                    <div className="w-12 h-12 border-4 border-gaming-blue border-t-transparent rounded-full animate-spin"></div>
-                </div>
+                <LoadingSpinner />
             ) : error ? (
                 <div className="text-center text-red-500 mt-10"><p>{error}</p></div>
             ) : (
