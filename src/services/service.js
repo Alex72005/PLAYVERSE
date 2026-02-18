@@ -56,15 +56,20 @@ export const getPopularGames = async () => {
 
 export const getGameSuggested = async (id) => {
     try {
-        const response = await fetch(`${BASE_URL}/games/${id}/suggested?key=${API_KEY}&page_size=4`);
+        // El endpoint original /suggested devuelve 401 Unauthorized en el plan gratuito.
+        // Para evitar errores en consola, sustituimos por una búsqueda de juegos populares/relacionados genérica.
+        // Simulamos "sugeridos" devolviendo juegos populares.
+        const response = await fetch(`${BASE_URL}/games?key=${API_KEY}&page_size=4&ordering=-metacritic`);
+
         if (!response.ok) {
-            throw new Error('Error fetching suggested games');
+            console.warn('Fallback suggested games failed.');
+            return [];
         }
         const data = await response.json();
         return data.results;
     } catch (error) {
         console.error('Error in getGameSuggested:', error);
-        throw error;
+        return [];
     }
 };
 

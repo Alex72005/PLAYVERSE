@@ -28,6 +28,8 @@ export default function Footer() {
                             <ul className="space-y-2 text-sm text-foreground-muted">
                                 <li><Link to="/" className="hover:text-gaming-accent transition-colors">Inicio</Link></li>
                                 <li><Link to="/games" className="hover:text-gaming-accent transition-colors">Juegos</Link></li>
+                                <li><Link to="/publishers" className="hover:text-gaming-accent transition-colors">Publishers</Link></li>
+                                <li><Link to="/events" className="hover:text-gaming-accent transition-colors">Eventos</Link></li>
                             </ul>
                         </div>
 

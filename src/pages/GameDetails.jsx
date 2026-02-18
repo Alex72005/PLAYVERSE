@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useNavigate } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     fetchGameDetails,
@@ -13,6 +13,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 export default function GameDetails() {
     const { id } = useParams();
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const scrollRef = useRef(null);
 
     // Redux State
@@ -62,18 +63,23 @@ export default function GameDetails() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 pt-2 pb-8 text-white">
-            <Link to="/games" className="md:hidden inline-flex items-center justify-center p-2 mb-4 bg-gaming-card rounded-full border border-white/10 text-gaming-accent hover:bg-gaming-hover transition-colors">
+            <button
+                onClick={() => navigate(-1)}
+                className="md:hidden inline-flex items-center justify-center p-2 mb-4 bg-gaming-card rounded-full border border-white/10 text-gaming-accent hover:bg-gaming-hover transition-colors cursor-pointer"
+                type="button"
+                aria-label="Go back"
+            >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                 </svg>
-            </Link>
+            </button>
 
-            <div className="relative h-[300px] md:h-[500px] rounded-2xl overflow-hidden mb-8 shadow-2xl">
+            <div className="relative h-[500px] rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <img src={game.background_image} alt={game.name} className="w-full h-full object-cover object-top" />
-                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-gaming-bg to-transparent p-6 md:p-8">
+                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-gaming-bg to-transparent p-8">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 md:mb-4">{game.name}</h1>
+                            <h1 className="text-5xl font-bold text-white mb-4">{game.name}</h1>
                             <div className="flex gap-4">
                                 <span className="bg-gaming-blue text-white px-3 py-1 rounded-full text-sm">Rating: {game.rating}</span>
                                 <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm">{game.released}</span>
@@ -95,7 +101,7 @@ export default function GameDetails() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 <div className="lg:col-span-2 flex">
                     {/* Description Card */}
-                    <div className="bg-gaming-card p-6 md:p-8 rounded-xl border border-white/5 text-foreground-muted leading-relaxed w-full flex flex-col">
+                    <div className="bg-gaming-card p-8 rounded-xl border border-white/5 text-foreground-muted leading-relaxed w-full h-[440px] flex flex-col">
                         <h2 className="text-xl font-bold text-white mb-4 shrink-0">Sobre este juego</h2>
                         <div
                             dangerouslySetInnerHTML={{
@@ -104,13 +110,13 @@ export default function GameDetails() {
                                     : game.description)
                                     .replace(/^(<br\s*\/?>|\s)+/i, '')
                             }}
-                            className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0"
+                            className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0 overflow-y-auto grow pr-4 custom-scrollbar"
                         />
                     </div>
                 </div>
 
                 {/* Sidebar Card */}
-                <div className="bg-gaming-card p-6 rounded-xl border border-white/5">
+                <div className="bg-gaming-card p-6 rounded-xl border border-white/5 h-[440px] overflow-y-auto custom-scrollbar">
                     <div className="space-y-4 mt-3">
                         <div>
                             <span className="block text-sm text-foreground-muted">Plataformas</span>
@@ -180,7 +186,7 @@ export default function GameDetails() {
                 <div className="mb-12 relative group">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold text-white">Imágenes</h2>
-                        <div className="flex gap-2">
+                        <div className="hidden md:flex gap-2">
                             <button
                                 onClick={() => scroll('left')}
                                 className="p-2 rounded-full bg-gaming-card border border-white/10 hover:border-gaming-blue transition-colors text-white/70 hover:text-white cursor-pointer"
@@ -204,12 +210,12 @@ export default function GameDetails() {
 
                     <div
                         ref={scrollRef}
-                        className="flex gap-4 overflow-x-auto no-scrollbar pb-2 snap-x"
+                        className="grid grid-cols-1 gap-4 pb-2 md:flex md:overflow-x-auto md:no-scrollbar md:snap-x"
                     >
                         {screenshots.map(s => (
                             <div
                                 key={s.id}
-                                className="min-w-[280px] md:min-w-[350px] lg:min-w-[calc(33.333%-11px)] aspect-video rounded-lg overflow-hidden border border-white/10 hover:border-gaming-blue transition-colors group/img cursor-zoom-in snap-start"
+                                className="w-full md:w-auto md:min-w-[350px] lg:min-w-[calc(33%-11px)] aspect-video rounded-lg overflow-hidden border border-white/10 hover:border-gaming-blue transition-colors group/img cursor-zoom-in md:snap-start"
                             >
                                 <img
                                     src={s.image}
@@ -224,7 +230,7 @@ export default function GameDetails() {
 
             {/* Suggested Games Section */}
             {suggestedGames.length > 0 && (
-                <div className="border-t border-white/10 pt-8">
+                <div className="pt-8">
                     <h2 className="text-2xl font-bold text-white mb-6">Quizás también te guste</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {suggestedGames.map(suggested => (
