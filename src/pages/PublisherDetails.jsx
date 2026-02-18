@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
-import { getPublisherDetails, getGames } from '../services/gameService';
+import { getPublisherDetails, getGames } from '../services/service';
 import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
 import LoadingSpinner from '../components/LoadingSpinner';

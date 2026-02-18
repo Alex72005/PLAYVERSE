@@ -1,90 +1,51 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router';
-import { getGameDetails, getGameSuggested, getGames, getGameScreenshots } from '../services/gameService';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+    fetchGameDetails,
+    fetchGameScreenshots,
+    fetchGameSuggested,
+} from '../features/games/gamesThunks';
+import { toggleFavorite, clearGameDetails } from '../features/games/gamesSlice';
 import GameCard from '../components/GameCard';
-import { isFavorite, toggleFavorite } from '../services/favoritesService';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function GameDetails() {
     const { id } = useParams();
-    const [game, setGame] = useState(null);
-    const [suggestedGames, setSuggestedGames] = useState([]);
-    const [screenshots, setScreenshots] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [isFav, setIsFav] = useState(false);
+    const dispatch = useDispatch();
+    const scrollRef = useRef(null);
+
+    // Redux State
+    const {
+        gameDetails: game,
+        screenshots,
+        suggestedGames,
+        favorites,
+        status,
+        error
+    } = useSelector((state) => state.games);
+
+    const loading = status === 'loading';
+    const isFav = game ? favorites.some(f => f.id === game.id) : false;
 
     useEffect(() => {
-        const fetchDetails = async () => {
-            setLoading(true);
-            try {
-                // Fetch details first
-                const details = await getGameDetails(id);
-                setGame(details);
-                setIsFav(isFavorite(details.id));
+        if (id) {
+            dispatch(fetchGameDetails(id));
+            dispatch(fetchGameScreenshots(id));
+            dispatch(fetchGameSuggested(id));
+        }
 
-                // Try to fetch suggested games
-                let related = [];
-                try {
-                    related = await getGameSuggested(id);
-                } catch (e) {
-                    console.warn("Suggested failed, trying fallback");
-                }
-
-                // Fallback: If no suggested games, search by same genre
-                if ((!related || related.length === 0) && details.genres && details.genres.length > 0) {
-                    try {
-                        // Use the first genre's slug to find related games
-                        const mainGenre = details.genres[0].slug;
-                        const genreGames = await getGames(1, '', mainGenre);
-                        // Filter out the current game from results and take top 4
-                        related = genreGames.results
-                            .filter(g => g.id !== details.id)
-                            .slice(0, 4);
-                    } catch (genreError) {
-                        console.error("Fallback genre search failed", genreError);
-                    }
-                }
-
-                setSuggestedGames(related || []);
-
-                // Fetch screenshots
-                try {
-                    const ss = await getGameScreenshots(id);
-                    setScreenshots(ss || []);
-                } catch (ssError) {
-                    console.warn("Screenshots fetch failed", ssError);
-                }
-
-            } catch (err) {
-                console.error("Error loading game details:", err);
-                setError('Error al cargar los detalles del juego.');
-            } finally {
-                setLoading(false);
-            }
+        // Cleanup on unmount or id change
+        return () => {
+            dispatch(clearGameDetails());
         };
-        fetchDetails();
-    }, [id]);
-
-    useEffect(() => {
-        if (!game) return;
-
-        const handleStorageChange = () => {
-            setIsFav(isFavorite(game.id));
-        };
-
-        window.addEventListener('favorites-updated', handleStorageChange);
-        return () => window.removeEventListener('favorites-updated', handleStorageChange);
-    }, [game]);
+    }, [dispatch, id]);
 
     const handleToggleFavorite = () => {
         if (game) {
-            toggleFavorite(game);
-            setIsFav(!isFav);
+            dispatch(toggleFavorite(game));
         }
     };
-
-    const scrollRef = useRef(null);
 
     const scroll = (direction) => {
         if (scrollRef.current) {
@@ -95,8 +56,8 @@ export default function GameDetails() {
     };
 
     if (loading) return <LoadingSpinner fullScreen />;
-
-    if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
+    // We might want to show error only if we don't have game details
+    if (error && !game) return <div className="text-center text-red-500 mt-10">{error}</div>;
     if (!game) return <div className="text-center text-white mt-10">Juego no encontrado</div>;
 
     return (
@@ -107,12 +68,12 @@ export default function GameDetails() {
                 </svg>
             </Link>
 
-            <div className="relative h-[500px] rounded-2xl overflow-hidden mb-8 shadow-2xl">
+            <div className="relative h-[300px] md:h-[500px] rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <img src={game.background_image} alt={game.name} className="w-full h-full object-cover object-top" />
-                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-gaming-bg to-transparent p-8">
+                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-gaming-bg to-transparent p-6 md:p-8">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-5xl font-bold text-white mb-4">{game.name}</h1>
+                            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 md:mb-4">{game.name}</h1>
                             <div className="flex gap-4">
                                 <span className="bg-gaming-blue text-white px-3 py-1 rounded-full text-sm">Rating: {game.rating}</span>
                                 <span className="bg-white/10 text-white px-3 py-1 rounded-full text-sm">{game.released}</span>
@@ -134,7 +95,7 @@ export default function GameDetails() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                 <div className="lg:col-span-2 flex">
                     {/* Description Card */}
-                    <div className="bg-gaming-card p-8 rounded-xl border border-white/5 text-foreground-muted leading-relaxed w-full h-[440px] flex flex-col">
+                    <div className="bg-gaming-card p-6 md:p-8 rounded-xl border border-white/5 text-foreground-muted leading-relaxed w-full flex flex-col">
                         <h2 className="text-xl font-bold text-white mb-4 shrink-0">Sobre este juego</h2>
                         <div
                             dangerouslySetInnerHTML={{
@@ -143,13 +104,13 @@ export default function GameDetails() {
                                     : game.description)
                                     .replace(/^(<br\s*\/?>|\s)+/i, '')
                             }}
-                            className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0 overflow-y-auto grow pr-4 custom-scrollbar"
+                            className="prose prose-invert max-w-none text-justify [&>*:first-child]:mt-0"
                         />
                     </div>
                 </div>
 
                 {/* Sidebar Card */}
-                <div className="bg-gaming-card p-6 rounded-xl border border-white/5 h-[440px] overflow-y-auto custom-scrollbar">
+                <div className="bg-gaming-card p-6 rounded-xl border border-white/5">
                     <div className="space-y-4 mt-3">
                         <div>
                             <span className="block text-sm text-foreground-muted">Plataformas</span>

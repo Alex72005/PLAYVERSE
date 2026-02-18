@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
-import { memo } from 'react';
 
-const PublisherCard = memo(({ publisher }) => {
+const PublisherCard = ({ publisher }) => {
     return (
         <Link
             to={`/publisher/${publisher.slug}`}
@@ -25,6 +24,6 @@ const PublisherCard = memo(({ publisher }) => {
             </div>
         </Link>
     );
-});
+};
 
 export default PublisherCard;

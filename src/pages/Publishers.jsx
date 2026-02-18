@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { getPublishers } from '../services/gameService';
+import { getPublishers } from '../services/service';
 import Pagination from '../components/Pagination';
 import PublisherCard from '../components/PublisherCard';
 import LoadingSpinner from '../components/LoadingSpinner';

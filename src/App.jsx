@@ -9,6 +9,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import Publishers from "./pages/Publishers";
 import PublisherDetails from "./pages/PublisherDetails";
 
+import Events from "./pages/Events";
+import MyEvents from "./pages/MyEvents";
+
 export default function App() {
   return (
     <MainLayout>
@@ -20,6 +23,8 @@ export default function App() {
         <Route path="/publisher/:slug" element={<PublisherDetails />} />
         <Route path="/game/:id" element={<GameDetails />} />
         <Route path="/favorites" element={<Favorites />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/my-events" element={<MyEvents />} />
       </Routes>
     </MainLayout>
   );

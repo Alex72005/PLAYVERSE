@@ -1,33 +1,52 @@
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import GameCard from '../components/GameCard';
-import { getFavorites } from '../services/favoritesService';
+import Pagination from '../components/Pagination';
+
+const ITEMS_PER_PAGE = 20;
 
 export default function Favorites() {
-    const [favorites, setFavorites] = useState([]);
+    const favorites = useSelector(state => state.games.favorites);
+    const [page, setPage] = useState(1);
 
+    // Si la página actual supera el total de páginas (ej. al borrar favoritos), volver a la última
     useEffect(() => {
-        // Initial load
-        setFavorites(getFavorites());
+        const maxPage = Math.ceil(favorites.length / ITEMS_PER_PAGE) || 1;
+        if (page > maxPage) setPage(maxPage);
+    }, [favorites.length, page]);
 
-        // Listen for updates
-        const handleStorageChange = () => {
-            setFavorites(getFavorites());
-        };
+    const totalPages = Math.ceil(favorites.length / ITEMS_PER_PAGE);
 
-        window.addEventListener('favorites-updated', handleStorageChange);
-        return () => window.removeEventListener('favorites-updated', handleStorageChange);
-    }, []);
+    // Calcular qué juegos mostrar en esta página
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const currentFavorites = favorites.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <div className="max-w-7xl mx-auto px-4 pt-6 pb-8">
             <h1 className="text-3xl font-bold text-white mb-8">Mis Favoritos</h1>
 
             {favorites.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {favorites.map(game => (
-                        <GameCard key={game.id} game={game} />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        {currentFavorites.map(game => (
+                            <GameCard key={game.id} game={game} />
+                        ))}
+                    </div>
+
+                    {/* Solo mostrar paginación si hay más de 20 juegos */}
+                    {totalPages > 1 && (
+                        <Pagination
+                            page={page}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
+                    )}
+                </>
             ) : (
                 <div className="text-center py-20">
                     <div className="bg-gaming-card inline-block p-6 rounded-full mb-4 border border-white/5">

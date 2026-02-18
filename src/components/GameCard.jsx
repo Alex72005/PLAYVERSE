@@ -1,41 +1,38 @@
 import { Link } from 'react-router';
-import { useState, useEffect, memo } from 'react';
-import { isFavorite, toggleFavorite } from '../services/favoritesService';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleFavorite } from '../features/games/gamesSlice';
+import { getOptimizedImage } from '../utils/imageUtils';
 
-const GameCard = memo(({ game }) => {
-    const [isFav, setIsFav] = useState(false);
-
-    useEffect(() => {
-        setIsFav(isFavorite(game.id));
-
-        const handleStorageChange = () => {
-            setIsFav(isFavorite(game.id));
-        };
-
-        window.addEventListener('favorites-updated', handleStorageChange);
-        return () => window.removeEventListener('favorites-updated', handleStorageChange);
-    }, [game.id]);
+const GameCard = ({ game }) => {
+    const dispatch = useDispatch();
+    const favorites = useSelector(state => state.games.favorites);
+    const isFav = favorites.some(g => g.id === game.id);
 
     const handleToggleFavorite = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleFavorite(game);
-        // State update happens via event listener, but immediate feedback is nice too
-        setIsFav(!isFav);
+        dispatch(toggleFavorite(game));
     };
 
+    // Use optimized image for card (smaller size)
+    const optimizedImage = game.background_image
+        ? getOptimizedImage(game.background_image, 600)
+        : null;
+
     return (
-        <Link to={`/game/${game.id}`} className="bg-gaming-card rounded-xl overflow-hidden shadow-lg border border-white/5 hover:shadow-gaming-blue/20 hover:-translate-y-1 transition-[transform,box-shadow,border-color] duration-300 group block h-full">
+        <Link to={`/game/${game.id}`} className="bg-gaming-card rounded-xl overflow-hidden shadow-lg border border-white/5 hover:shadow-gaming-blue/20 hover:-translate-y-1 transition-[transform,box-shadow,border-color] duration-300 group block h-full will-change-transform">
             <div className="h-full flex flex-col">
-                <div className="relative h-48 overflow-hidden">
-                    {game.background_image ? (
+                <div className="relative h-48 overflow-hidden bg-gaming-hover">
+                    {optimizedImage ? (
                         <img
-                            src={game.background_image}
+                            src={optimizedImage}
                             alt={game.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                     ) : (
-                        <div className="w-full h-full bg-gaming-hover flex items-center justify-center text-gaming-muted">
+                        <div className="w-full h-full flex items-center justify-center text-gaming-muted">
                             Sin imagen
                         </div>
                     )}
@@ -45,10 +42,10 @@ const GameCard = memo(({ game }) => {
                         </div>
                         <button
                             onClick={handleToggleFavorite}
-                            className="bg-gaming-bg/80 backdrop-blur-sm p-1.5 rounded-full border border-white/10 text-white hover:bg-gaming-accent/20 transition-colors z-10 group/btn cursor-pointer"
+                            className={`bg-gaming-bg/80 backdrop-blur-sm p-1.5 rounded-full border border-white/10 transition-colors z-10 group/btn cursor-pointer ${isFav ? 'text-gaming-accent' : 'text-white hover:bg-gaming-accent/20'}`}
                             title={isFav ? "Quitar de favoritos" : "Añadir a favoritos"}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke={isFav ? "none" : "currentColor"} className={`w-5 h-5 transition-transform duration-300 ${isFav ? 'text-gaming-accent scale-110' : 'text-white group-hover/btn:scale-110'}`} strokeWidth={2}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke={isFav ? "none" : "currentColor"} className={`w-5 h-5 transition-transform duration-300 ${isFav ? 'scale-110' : 'group-hover/btn:scale-110'}`} strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
                         </button>
@@ -59,15 +56,15 @@ const GameCard = memo(({ game }) => {
                     <h2 className="text-lg font-bold text-white mb-1 truncate" title={game.name}>
                         {game.name}
                     </h2>
-                    <div className="flex flex-wrap gap-2 text-xs text-foreground-muted mb-4">
+                    <div className="flex gap-2 text-xs text-foreground-muted mb-4">
                         <span>{game.released?.split('-')[0] || 'N/A'}</span>
                         <span>•</span>
-                        <span>{game.genres?.slice(0, 2).map(g => g.name).join(', ')}</span>
+                        <span className="truncate max-w-[150px]">{game.genres?.slice(0, 2).map(g => g.name).join(', ')}</span>
                     </div>
                 </div>
             </div>
         </Link>
     );
-});
+};
 
 export default GameCard;
