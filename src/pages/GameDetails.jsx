@@ -210,7 +210,7 @@ export default function GameDetails() {
 
                     <div
                         ref={scrollRef}
-                        className="grid grid-cols-1 gap-4 pb-2 md:flex md:overflow-x-auto md:no-scrollbar md:snap-x"
+                        className="grid grid-cols-1 gap-4 pb-2 md:flex md:overflow-x-auto no-scrollbar md:snap-x"
                     >
                         {screenshots.map(s => (
                             <div
