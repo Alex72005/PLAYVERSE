@@ -9,6 +9,7 @@ export default function Events() {
     const { events, status, error } = useSelector(state => state.events);
     const loading = status === 'loading';
 
+    ///////////////////////////////////sssssssssssssssssssssssss
     useEffect(() => {
         if (status === 'idle') {
             dispatch(fetchEvents());
