@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { getPopularGames, getGames } from '../services/service';
+import { getPopularGames, getGames } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import Carousel from '../components/Carousel';
 import LoadingSpinner from '../components/LoadingSpinner';

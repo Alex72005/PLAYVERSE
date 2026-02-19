@@ -1,4 +1,7 @@
-export const events = [
+const EVENTS_KEY = 'playverse_my_events';
+
+// Mock data for events since original source is missing
+const MOCK_EVENTS = [
     {
         id: 1,
         title: "Torneo de League of Legends",
@@ -41,10 +44,35 @@ export const events = [
     }
 ];
 
-export const getEventsMock = () => {
+export const getEvents = async () => {
+    // Simulate API delay
     return new Promise((resolve) => {
         setTimeout(() => {
-            resolve(events);
-        }, 500); // Simulate API latency
+            resolve(MOCK_EVENTS);
+        }, 800);
     });
+};
+
+export const getMyEvents = () => {
+    const myEvents = localStorage.getItem(EVENTS_KEY);
+    return myEvents ? JSON.parse(myEvents) : [];
+};
+
+export const joinEvent = (event) => {
+    const myEvents = getMyEvents();
+    if (!myEvents.some(e => e.id === event.id)) {
+        myEvents.push(event);
+        localStorage.setItem(EVENTS_KEY, JSON.stringify(myEvents));
+        window.dispatchEvent(new CustomEvent('events-updated'));
+        return true;
+    }
+    return false;
+};
+
+export const leaveEvent = (eventId) => {
+    let myEvents = getMyEvents();
+    myEvents = myEvents.filter(e => e.id !== eventId);
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(myEvents));
+    window.dispatchEvent(new CustomEvent('events-updated'));
+    return true;
 };

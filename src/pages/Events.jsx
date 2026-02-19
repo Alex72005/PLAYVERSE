@@ -1,19 +1,17 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchEvents } from '../features/events/eventsThunks';
+import { useEvents } from '../context/EventsContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EventCard from '../components/EventCard';
 
 export default function Events() {
-    const dispatch = useDispatch();
-    const { events, status, error } = useSelector(state => state.events);
+    const { events, status, error, fetchEvents } = useEvents();
     const loading = status === 'loading';
 
     useEffect(() => {
         if (status === 'idle') {
-            dispatch(fetchEvents());
+            fetchEvents();
         }
-    }, [status, dispatch]);
+    }, [status, fetchEvents]);
 
     if (loading) return <LoadingSpinner fullScreen />;
     if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;

@@ -1,16 +1,14 @@
-import { useDispatch, useSelector } from 'react-redux';
-import { joinEvent, leaveEvent } from '../features/events/eventsSlice';
+import { useEvents } from '../context/EventsContext';
 
 const EventCard = ({ event }) => {
-    const dispatch = useDispatch();
-    const myEvents = useSelector(state => state.events.myEvents);
+    const { myEvents, joinEvent, leaveEvent } = useEvents();
     const isJoined = myEvents.some(e => e.id === event.id);
 
     const handleJoinToggle = () => {
         if (isJoined) {
-            dispatch(leaveEvent(event.id));
+            leaveEvent(event.id);
         } else {
-            dispatch(joinEvent(event));
+            joinEvent(event);
         }
     };
 

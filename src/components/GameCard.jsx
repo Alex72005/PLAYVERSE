@@ -1,17 +1,15 @@
 import { Link } from 'react-router';
-import { useDispatch, useSelector } from 'react-redux';
-import { toggleFavorite } from '../features/games/gamesSlice';
+import { useFavorites } from '../context/FavoritesContext';
 import { getOptimizedImage } from '../utils/imageUtils';
 
 const GameCard = ({ game }) => {
-    const dispatch = useDispatch();
-    const favorites = useSelector(state => state.games.favorites);
+    const { favorites, toggleFavorite } = useFavorites();
     const isFav = favorites.some(g => g.id === game.id);
 
     const handleToggleFavorite = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        dispatch(toggleFavorite(game));
+        toggleFavorite(game);
     };
 
     // Use optimized image for card (smaller size)

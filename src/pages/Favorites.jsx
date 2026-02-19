@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useFavorites } from '../context/FavoritesContext';
 import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
 
 const ITEMS_PER_PAGE = 20;
 
 export default function Favorites() {
-    const favorites = useSelector(state => state.games.favorites);
+    const { favorites } = useFavorites();
     const [page, setPage] = useState(1);
 
     // Si la página actual supera el total de páginas (ej. al borrar favoritos), volver a la última

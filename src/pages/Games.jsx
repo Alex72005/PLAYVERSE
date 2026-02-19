@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchGames, fetchGenres, fetchTags } from '../features/games/gamesThunks';
+import { getGames, getGenres, getTags } from '../services/gameService';
 import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Games() {
-    const dispatch = useDispatch();
+    // Local state for data
+    const [games, setGames] = useState([]);
+    const [totalGames, setTotalGames] = useState(0);
+    const [genresList, setGenresList] = useState([]);
+    const [tagsList, setTagsList] = useState([]);
+    const [status, setStatus] = useState('idle');
+    const [error, setError] = useState(null);
     const [searchParams, setSearchParams] = useSearchParams();
 
     // URL Params
@@ -20,26 +25,26 @@ export default function Games() {
     // Local state for search input (debouncing)
     const [searchInput, setSearchInput] = useState(searchParam);
 
-    // Redux State
-    const {
-        games,
-        totalGames,
-        genres: genresList,
-        tags: tagsList,
-        status,
-        error
-    } = useSelector((state) => state.games);
-
     const loading = status === 'loading';
+
+
 
     // Derived state for pagination
     const [totalPages, setTotalPages] = useState(0);
 
     // Initial Fetch of Filters
     useEffect(() => {
-        if (genresList.length === 0) dispatch(fetchGenres());
-        if (tagsList.length === 0) dispatch(fetchTags());
-    }, [dispatch, genresList.length, tagsList.length]);
+        const loadFilters = async () => {
+            try {
+                const [g, t] = await Promise.all([getGenres(), getTags()]);
+                setGenresList(g);
+                setTagsList(t);
+            } catch (err) {
+                console.error("Failed to load filters", err);
+            }
+        };
+        loadFilters();
+    }, []);
 
     // Update local search input if URL changes
     useEffect(() => {
@@ -67,13 +72,21 @@ export default function Games() {
 
     // Fetch Games when URL params change
     useEffect(() => {
-        dispatch(fetchGames({
-            page,
-            search: searchParam,
-            genres: genreSlug,
-            tags: tagSlug
-        }));
-    }, [dispatch, page, searchParam, genreSlug, tagSlug]);
+        const loadGames = async () => {
+            setStatus('loading');
+            setError(null);
+            try {
+                const data = await getGames(page, searchParam, genreSlug, tagSlug);
+                setGames(data.results);
+                setTotalGames(data.count);
+                setStatus('succeeded');
+            } catch (err) {
+                setError('Error al cargar juegos');
+                setStatus('failed');
+            }
+        };
+        loadGames();
+    }, [page, searchParam, genreSlug, tagSlug]);
 
     // Calculate Total Pages
     useEffect(() => {

@@ -1,50 +1,53 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { useDispatch, useSelector } from 'react-redux';
-import {
-    fetchGameDetails,
-    fetchGameScreenshots,
-    fetchGameSuggested,
-} from '../features/games/gamesThunks';
-import { toggleFavorite, clearGameDetails } from '../features/games/gamesSlice';
-import GameCard from '../components/GameCard';
+import { useFavorites } from '../context/FavoritesContext';
+import { getGameDetails, getGameScreenshots, getGameSuggested } from '../services/gameService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import GameCard from '../components/GameCard';
 
 export default function GameDetails() {
     const { id } = useParams();
-    const dispatch = useDispatch();
     const navigate = useNavigate();
     const scrollRef = useRef(null);
+    const { favorites, toggleFavorite } = useFavorites();
 
-    // Redux State
-    const {
-        gameDetails: game,
-        screenshots,
-        suggestedGames,
-        favorites,
-        status,
-        error
-    } = useSelector((state) => state.games);
+    const [game, setGame] = useState(null);
+    const [screenshots, setScreenshots] = useState([]);
+    const [suggestedGames, setSuggestedGames] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const loading = status === 'loading';
     const isFav = game ? favorites.some(f => f.id === game.id) : false;
 
     useEffect(() => {
-        if (id) {
-            dispatch(fetchGameDetails(id));
-            dispatch(fetchGameScreenshots(id));
-            dispatch(fetchGameSuggested(id));
-        }
-
-        // Cleanup on unmount or id change
-        return () => {
-            dispatch(clearGameDetails());
+        const loadData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [gameData, screenshotsData, suggestedData] = await Promise.all([
+                    getGameDetails(id),
+                    getGameScreenshots(id),
+                    getGameSuggested(id)
+                ]);
+                setGame(gameData);
+                setScreenshots(screenshotsData);
+                setSuggestedGames(suggestedData);
+            } catch (err) {
+                setError('Error al cargar los detalles del juego.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
         };
-    }, [dispatch, id]);
+
+        if (id) {
+            loadData();
+        }
+    }, [id]);
 
     const handleToggleFavorite = () => {
         if (game) {
-            dispatch(toggleFavorite(game));
+            toggleFavorite(game);
         }
     };
 
@@ -210,7 +213,7 @@ export default function GameDetails() {
 
                     <div
                         ref={scrollRef}
-                        className="grid grid-cols-1 gap-4 pb-2 md:flex md:overflow-x-auto md:no-scrollbar md:snap-x"
+                        className="grid grid-cols-1 gap-4 pb-2 md:flex md:overflow-x-auto no-scrollbar md:snap-x"
                     >
                         {screenshots.map(s => (
                             <div

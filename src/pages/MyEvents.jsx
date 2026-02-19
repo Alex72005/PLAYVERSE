@@ -1,9 +1,9 @@
-import { useSelector } from 'react-redux';
+import { useEvents } from '../context/EventsContext';
 import { Link } from 'react-router';
 import EventCard from '../components/EventCard';
 
 export default function MyEvents() {
-    const myEvents = useSelector(state => state.events.myEvents);
+    const { myEvents } = useEvents();
 
     return (
         <div className="max-w-7xl mx-auto px-4 pt-6 pb-8 text-white">
