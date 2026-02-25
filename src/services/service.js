@@ -18,6 +18,9 @@ export const getGames = async (page = 1, search = '', genres = '', tags = '', pu
         }
         const response = await fetch(url);
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized: Please check your RAWG API Key in .env');
+            }
             throw new Error('Error fetching games');
         }
         return await response.json();
@@ -31,6 +34,9 @@ export const getGameDetails = async (id) => {
     try {
         const response = await fetch(`${BASE_URL}/games/${id}?key=${API_KEY}`);
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized: Please check your RAWG API Key in .env');
+            }
             throw new Error('Error fetching game details');
         }
         return await response.json();
@@ -44,6 +50,9 @@ export const getPopularGames = async () => {
     try {
         const response = await fetch(`${BASE_URL}/games?key=${API_KEY}&page_size=5&ordering=-metacritic&dates=2023-01-01,2024-12-31`);
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized: Please check your RAWG API Key in .env');
+            }
             throw new Error('Error fetching popular games');
         }
         const data = await response.json();
@@ -90,7 +99,12 @@ export const getGameScreenshots = async (id) => {
 export const getGenres = async () => {
     try {
         const response = await fetch(`${BASE_URL}/genres?key=${API_KEY}`);
-        if (!response.ok) throw new Error('Error fetching genres');
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized: Please check your RAWG API Key in .env');
+            }
+            throw new Error('Error fetching genres');
+        }
         const data = await response.json();
         return data.results;
     } catch (error) {
@@ -102,7 +116,12 @@ export const getGenres = async () => {
 export const getTags = async () => {
     try {
         const response = await fetch(`${BASE_URL}/tags?key=${API_KEY}&page_size=20`);
-        if (!response.ok) throw new Error('Error fetching tags');
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Unauthorized: Please check your RAWG API Key in .env');
+            }
+            throw new Error('Error fetching tags');
+        }
         const data = await response.json();
         return data.results;
     } catch (error) {
